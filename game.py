@@ -7,7 +7,7 @@ from games_1 import casino, casino_fire
 from games_2 import stone_game, stone, scissors, paper
 from games_3 import tails, verify
 
-bot = TeleBot('')
+bot = TeleBot('6739834598:AAGfsRZZyrn2-ki5BgOdYeZWm5OUfh6UJxw')
 
 conn = sqlite3.connect('game.sqlite', check_same_thread=False)
 
