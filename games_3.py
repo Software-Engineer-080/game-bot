@@ -7,35 +7,36 @@ def tails():
            f'Одна игра стоит 4 монеты!'
 
 
-def verify(message, user):
+def verify(call, user):
     if user.money < 4:
-        return f'Вы не можете сыграть!\n' \
-               f'Ваш баланс монет: {user.money}💰\n' \
-               f'Для игры нужно 4💰\n' \
+        return f'Вы не можете сыграть!\n\n' \
+               f'Ваш баланс монет: {user.money}💰\n\n' \
+               f'Для игры нужно 4💰\n\n' \
                f'Пополните баланс в профиле!'
     else:
         now = random.randint(0, 1)
-        if message.text == 'Орёл 🦅':  # 0
+        player_choice = call.data
+        if player_choice == 'Орёл 🦅':  # 0
             players = 0
             if players == now:
                 user.add_money(3)
-                return f'Поздравляю, {message.from_user.first_name}!\n'\
-                       f'Вы выиграли 3 монеты!\n'\
+                return f'Поздравляю, {call.from_user.first_name}!\n\n'\
+                       f'Вы выиграли 3 монеты!\n\n'\
                        f'Ваш баланс монет: {user.money}💰'
             else:
                 user.deduct_money(4)
-                return f'Сожалею, {message.from_user.first_name}!\n'\
-                       f'Вы проиграли 4 монеты!\n'\
+                return f'Сожалею, {call.from_user.first_name}!\n\n'\
+                       f'Вы проиграли 4 монеты!\n\n'\
                        f'Ваш баланс монет: {user.money}💰'
-        elif message.text == 'Решка 🪙':  # 1
+        elif player_choice == 'Решка 🪙':  # 1
             players = 1
             if players == now:
                 user.add_money(3)
-                return f'Поздравляю, {message.from_user.first_name}!\n'\
-                       f'Вы выиграли 3 монеты!\n'\
+                return f'Поздравляю, {call.from_user.first_name}!\n\n'\
+                       f'Вы выиграли 3 монеты!\n\n'\
                        f'Ваш баланс монет: {user.money}💰'
             else:
                 user.deduct_money(4)
-                return f'Сожалею, {message.from_user.first_name}!\n'\
-                       f'Вы проиграли 4 монеты!\n'\
+                return f'Сожалею, {call.from_user.first_name}!\n\n'\
+                       f'Вы проиграли 4 монеты!\n\n'\
                        f'Ваш баланс монет: {user.money}💰'
