@@ -50,21 +50,25 @@ def casino_fire(user):
             three = '💥'
 
         if one == two == three == '💎':
+            user.update_wins()
             user.add_money(50)
             return f'Вы выиграли 50 монет!\n\n' \
                    f'Выпало: {one}-{two}-{three}\n\n' \
                    f'Ваш баланс монет: {user.money}💰'
         elif one == two == three == '🧨':
+            user.update_wins()
             user.add_money(30)
             return f'Вы выиграли 30 монет!\n\n' \
                    f'Выпало: {one}-{two}-{three}\n\n' \
                    f'Ваш баланс монет: {user.money}💰'
         elif one == two == three == '🕹':
+            user.update_wins()
             user.add_money(15)
             return f'Вы выиграли 15 монет!\n\n'\
                    f'Выпало: {one}-{two}-{three}\n\n'\
                    f'Ваш баланс монет: {user.money}💰'
         elif one == two == three == '💥':
+            user.update_wins()
             user.add_money(5)
             return f'Вы выиграли 5 монет!\n\n'\
                    f'Выпало: {one}-{two}-{three}\n\n'\

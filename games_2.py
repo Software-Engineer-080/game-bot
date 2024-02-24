@@ -28,6 +28,7 @@ def stone(user):
             bots = '✋🏻'
 
         if '✊🏻' == bots:
+            user.update_wins()
             user.add_money(2)
             return f'Ничья!\n\n'\
                    f'Компьютер выбросил {bots}\n\n'\
@@ -35,6 +36,7 @@ def stone(user):
                    f'Ваш баланс монет: {user.money}💰'
 
         elif bots == '✌🏻':
+            user.update_wins()
             user.add_money(3)
             return f'Вы выиграли 3 монеты!\n\n'\
                    f'Компьютер выбросил {bots}\n\n'\
@@ -72,6 +74,7 @@ def scissors(user):
                    f'Ваш баланс монет: {user.money}💰'
 
         elif bots == '✌🏻':
+            user.update_wins()
             user.add_money(2)
             return f'Ничья!\n\n'\
                    f'Компьютер выбросил {bots}\n\n'\
@@ -79,6 +82,7 @@ def scissors(user):
                    f'Ваш баланс монет: {user.money}💰'
 
         elif bots == '✋🏻':
+            user.update_wins()
             user.add_money(3)
             return f'Вы выиграли 3 монеты!\n\n'\
                    f'Компьютер выбросил {bots}\n\n'\
@@ -104,6 +108,7 @@ def paper(user):
             bots = '✋🏻'
 
         if bots == '✊🏻':
+            user.update_wins()
             user.add_money(3)
             return f'Вы выиграли 3 монеты!\n\n'\
                    f'Компьютер выбросил {bots}\n\n'\
@@ -117,6 +122,7 @@ def paper(user):
                    f'Ваш баланс монет: {user.money}💰'
 
         elif bots == '✋🏻':
+            user.update_wins()
             user.add_money(2)
             return f'Ничья!\n\n'\
                    f'Компьютер выбросил {bots}\n\n'\

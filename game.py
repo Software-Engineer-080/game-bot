@@ -3,24 +3,44 @@ import sqlite3
 import alive
 import logging
 import datetime
+from time import sleep
 from games_1 import casino, casino_fire
 from games_2 import stone_game, stone, scissors, paper
 from games_3 import tails, verify
+from game_dice import dice, dice_min, dice_three, dice_max
+import game_21
+from yookassa import Configuration, Payment
 
 bot = TeleBot('')
+
+yootoken = '390540012:LIVE:46917'
+
+Configuration.account_id = '337976'
+Configuration.secret_key = 'test_nLq_kHuSF_E9J-_c-2-vxtvqXsSDVgGXB0Kcg6UwnkE'
 
 conn = sqlite3.connect('game.sqlite', check_same_thread=False)
 
 
 class User:
-    def __init__(self, name, user_id, money=35):
+    def __init__(self, name, user_id, money=35, status='Новичок', wins=0):
         self.name = name
         self.id = user_id
         self.money = money
+        self.status = status
+        self.wins = wins
 
     def update_money(self):
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET money = ? WHERE user_id = ?", (self.money, self.id))
+        cursor.execute("UPDATE users SET money = ?, status = ?, wins = ? WHERE user_id = ?",
+                       (self.money, self.status, self.wins, self.id))
+        conn.commit()
+        cursor.close()
+
+    def update_wins(self):
+        self.wins += 1
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET money = ?, status = ?, wins = ? WHERE user_id = ?",
+                       (self.money, self.status, self.wins, self.id))
         conn.commit()
         cursor.close()
 
@@ -35,8 +55,10 @@ class User:
 
     def get_info(self):
         return f'🌚Информация🌝\n\n' \
-               f'Имя: {self.name}\n' \
-               f'ID: {self.id}\n' \
+               f'Статус: {self.status}\n\n'\
+               f'Победы: {self.wins}\n\n'\
+               f'Имя: {self.name}\n\n' \
+               f'ID: {self.id}\n\n' \
                f'Монеты: {self.money}💰'
 
 
@@ -46,12 +68,14 @@ def admin_users(call):
         cursor.execute("SELECT * FROM users")
         users_info = cursor.fetchall()
         cursor.close()
-
+        update_status(call.from_user.id)
         all_user = ''
         for user_info in users_info:
-            a_id, user_id, name, money = user_info
+            a_id, user_id, name, money, status, wins = user_info
             user_info_text = (f"🆔: {user_id}\n"
                               f"🃏: {name}\n"
+                              f'⚛️: {status}\n'
+                              f'🎖️: {wins}\n'
                               f"💰: {money}\n\n")
             all_user += user_info_text
 
@@ -62,7 +86,7 @@ def admin_users(call):
             bot.edit_message_text(chat_id=call.message.chat.id,
                                   message_id=call.message.message_id,
                                   text=all_user,
-                                  reply_markup=inline_buttons(['Стат 🌪', "Users", 'Вернуться ☝🏻']))
+                                  reply_markup=inline_buttons(['Стат 🌪', "Users", 'STOP ❌', 'Вернуться ☝🏻']))
 
         else:
             bot.send_message(call.message.chat.id, "Сообщение для редактирования не найдено")
@@ -73,12 +97,12 @@ def get_or_create_user(user_id, name):
     cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
     existing_user = cursor.fetchone()
     if existing_user:
-        user = User(existing_user[2], existing_user[1], existing_user[3])
+        user = User(existing_user[2], existing_user[1], existing_user[3], existing_user[4], existing_user[5])
     else:
-        cursor.execute('INSERT INTO users (user_id, name, money) VALUES (?, ?, ?)',
-                       (user_id, name, 35))
+        cursor.execute('INSERT INTO users (user_id, name, money, status, wins) VALUES (?, ?, ?, ?, ?)',
+                       (user_id, name, 35, 'Новичок', 0))
         conn.commit()
-        user = User(name, user_id, 35)
+        user = User(name, user_id, 35, 'Новичок', 0)
     cursor.close()
     return user
 
@@ -93,7 +117,7 @@ def users_count(message):
         f"Пользователи: {count}",
         chat_id=message.chat.id,
         message_id=message.message_id,
-        reply_markup=inline_buttons(['Стат 🌪', "Users", 'Вернуться ☝🏻'])
+        reply_markup=inline_buttons(['Стат 🌪', "Users", 'STOP ❌', 'Вернуться ☝🏻'])
     )
 
 
@@ -107,9 +131,12 @@ def transfer_next(message):
         user_id, amount = map(int, message.text.split('-'))
         receiver = get_or_create_user(user_id, "Unknown")
         receiver.add_money(amount)
-        bot.send_message(user_id, f"Админ пополнил вас счет на {amount}💰")
-        bot.send_message(message.chat.id, f"Вы передали {amount} монет пользователю с ID {user_id}\n\n"
-                                          f"Нажмите заново /start", )
+        if user_id != 517899909:
+            bot.send_message(user_id, f"Админ пополнил ваш счет на {amount}💰")
+            bot.send_message(message.chat.id, f"Вы передали {amount} монет пользователю с ID {user_id}\n\n"
+                                              f"Нажмите заново /start", )
+        else:
+            bot.send_message(message.chat.id, f"Вы пополнили свой счет на {amount}💰")
     except ValueError:
         bot.send_message(message.chat.id, "Неверный формат сообщения. Попробуйте снова")
 
@@ -151,6 +178,34 @@ def inline_buttons(buttons_lst, buttons_per_row=2):
     return markup
 
 
+def update_status(user_id):
+    cursor = conn.cursor()
+    cursor.execute("SELECT wins FROM users WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    if result is not None:
+        wins = result[0]
+        cursor.close()
+        new_status = ''
+
+        if wins < 100:
+            new_status = 'Новичок'
+        elif 100 <= wins < 2000:
+            new_status = 'Опытный'
+        elif 2000 <= wins < 5000:
+            new_status = 'Профи'
+        elif 5000 <= wins < 10000:
+            new_status = 'Ветеран'
+        elif 10000 <= wins < 100000:
+            new_status = 'БОГ'
+
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET status = ? WHERE user_id = ?", (new_status, user_id))
+        conn.commit()
+        cursor.close()
+    else:
+        print("Пользователь с таким user_id не найден.")
+
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_id = message.from_user.id
@@ -158,8 +213,8 @@ def send_welcome(message):
     cursor.execute("SELECT * FROM users WHERE user_id = ?", [user_id])
     exists = cursor.fetchone()
     if not exists:
-        cursor.execute('INSERT INTO users (user_id, name, money) VALUES (?, ?, ?)',
-                       (message.from_user.id, message.from_user.first_name, 35))
+        cursor.execute('INSERT INTO users (user_id, name, money, status, wins) VALUES (?, ?, ?, ?, ?)',
+                       (user_id, message.from_user.first_name, 35, 'Новичок', 0))
         conn.commit()
         bot.send_message(517899909, f'⚡️Пользователь {message.from_user.first_name} воспользовался ботом⚡️')
         bot.send_message(message.chat.id,
@@ -167,26 +222,84 @@ def send_welcome(message):
                          f'Я твой бот для развлечений!\n\n'
                          f'И готов помочь тебе повеселиться 🎮!\n\n'
                          f'Выбери желаемую кнопку меню 👇🏻',
-                         reply_markup=inline_buttons(["Профиль", "Орёл / Решка", "✊🏻/✌🏻/✋🏻", "Казино 🎰"]))
+                         reply_markup=inline_buttons(
+                             ["Профиль", "Орёл / Решка", "✊🏻/✌🏻/✋🏻", 'Кости 🎲', '21🃏', "Казино 🎰"]))
     else:
         bot.send_message(message.chat.id, f'Рад, что Вы вернулись, {message.from_user.first_name}!',
-                         reply_markup=inline_buttons(["Профиль", "Орёл / Решка", "✊🏻/✌🏻/✋🏻", "Казино 🎰"]))
+                         reply_markup=inline_buttons(
+                             ["Профиль", "Орёл / Решка", "✊🏻/✌🏻/✋🏻", 'Кости 🎲', '21🃏', "Казино 🎰"]))
     cursor.close()
 
 
 def account(message, user):
     if user.id == 517899909:
-        user_menu = inline_buttons(['ADMIN', "Пополнить счёт", 'Передать 💰', 'В меню!'], buttons_per_row=2)
+        user_menu = inline_buttons(['ADMIN', "Пополнить счёт", 'Передать 💰', 'В меню ↘️'], buttons_per_row=2)
     else:
-        user_menu = inline_buttons(["Пополнить счёт", 'Продать 💸', 'Передать 💰', 'В меню!'],
+        user_menu = inline_buttons(["Пополнить счёт", 'Продать 💸', 'Передать 💰', 'В меню ↘️'],
                                    buttons_per_row=2)
-
+    update_status(message.chat.id)
     bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
                           text=user.get_info(), reply_markup=user_menu)
 
 
+def pay(message):
+    bot.send_invoice(message.chat.id,
+                     title="Покупка токенов",
+                     description='100 рублей --> 50 токенов',
+                     invoice_payload="Payment: Zozulya Yaroslav",
+                     currency="RUB",
+                     max_tip_amount=10000,
+                     suggested_tip_amounts=[20 * 10, 30 * 10, 40 * 10],
+                     provider_token=yootoken,
+                     photo_url='https://i.ibb.co/t3L4fYL/tokens.png',
+                     photo_width=150,
+                     photo_height=150,
+                     photo_size=78,
+                     need_name=True,
+                     is_flexible=False,
+                     prices=[types.LabeledPrice(label="50 💰", amount=100 * 100)],
+                     start_parameter="payment")
+
+
+@bot.shipping_query_handler(func=lambda query: True)
+def shipping(shipping_query):
+    bot.answer_shipping_query(shipping_query.id, ok=True)
+
+
+@bot.pre_checkout_query_handler(func=lambda query: True)
+def checkout(pre_checkout_query):
+    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True, error_message="Error")
+
+
+@bot.message_handler(content_types=['successful_payment'])
+def successful_payment(message):
+    user_id = message.from_user.id
+    amount = 50
+    payment = Payment.create({
+        "amount": {
+            "value": str(amount * 2),
+            "currency": "RUB"
+        },
+        "confirmation": {
+            "type": "redirect",
+            "return_url": "https://t.me/All_Funny_Games_bot"
+        },
+        'capture': True,
+        "description": "Покупка токенов для бота"
+    })
+    user = get_or_create_user(user_id, message.from_user.first_name)
+    if payment.status == 'succeeded':
+        user.add_money(amount)
+        bot.send_message(message.from_user.id, f'Вы успешно приобрели {amount} токенов\n'
+                                               f'Нажмите заново /start')
+
+
+game_instance = game_21.BlackjackGame()
+
+
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
+    global game_instance
     logging.debug(f"Received callback query: {call.data}")
 
     user_id = call.from_user.id
@@ -196,53 +309,104 @@ def callback_query(call):
         account(call.message, user)
     elif call.data == "Орёл / Решка":
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=tails(), reply_markup=inline_buttons(["Орёл 🦅", "Решка 🪙", "В меню!"]))
+                              text=tails(), reply_markup=inline_buttons(["Орёл 🦅", "Решка 🪙", "В меню ↘️"]))
     elif call.data == "✊🏻/✌🏻/✋🏻":
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=stone_game(), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню!"]))
+                              text=stone_game(), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню ↘️"]))
     elif call.data == "Казино 🎰":
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=casino(), reply_markup=inline_buttons(["Запуск 🔥", "В меню!"]))
+                              text=casino(), reply_markup=inline_buttons(["Запуск 🔥", "В меню ↘️"]))
+    elif call.data == 'Кости 🎲':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=dice(), reply_markup=inline_buttons(["🎲 < 3", "🎲 = 3", "🎲 > 3", "В меню ↘️"]))
+    elif (call.data == '21🃏') or (call.data == 'К игре ⬆️'):
+        game_instance = game_21.BlackjackGame()
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=game_instance.start_card(),
+                              reply_markup=inline_buttons(["Играть ⏯️", "Правила 📝", "В меню ↘️"]))
     elif call.data == "Пополнить счёт":
+        pay(call.message)
+    elif call.data == "Передать 💰":
         if user_id == 517899909:
             transfer_now(call.message)
         else:
-            pass
-    elif call.data == "Передать 💰":
-        transfer_money_now(call.message)
+            transfer_money_now(call.message)
     elif call.data == "ADMIN":
         if user_id == 517899909:
             bot.edit_message_text("Меню ADMIN",
                                   call.message.chat.id,
                                   call.message.message_id,
-                                  reply_markup=inline_buttons(['Стат 🌪', "Users", 'Вернуться ☝🏻']))
+                                  reply_markup=inline_buttons(['Стат 🌪', "Users", 'STOP ❌', 'Вернуться ☝🏻']))
 
     elif call.data == "Стат 🌪":
         users_count(call.message)
     elif call.data == "Users":
         admin_users(call)
+    elif call.data == 'STOP ❌':
+        bot.stop_bot()
     elif call.data == 'Орёл 🦅':
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=verify(call, user), reply_markup=inline_buttons(["Орёл 🦅", "Решка 🪙", "В меню!"]))
+                              text=verify(call, user), reply_markup=inline_buttons(["Орёл 🦅", "Решка 🪙", "В меню ↘️"]))
     elif call.data == 'Решка 🪙':
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=verify(call, user), reply_markup=inline_buttons(["Орёл 🦅", "Решка 🪙", "В меню!"]))
+                              text=verify(call, user), reply_markup=inline_buttons(["Орёл 🦅", "Решка 🪙", "В меню ↘️"]))
     elif call.data == 'Запуск 🔥':
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=casino_fire(user), reply_markup=inline_buttons(["Запуск 🔥", "В меню!"]))
+                              text=casino_fire(user), reply_markup=inline_buttons(["Запуск 🔥", "В меню ↘️"]))
     elif call.data == '✊🏻':
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=stone(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню!"]))
+                              text=stone(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню ↘️"]))
     elif call.data == '✌🏻':
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=scissors(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню!"]))
+                              text=scissors(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню ↘️"]))
     elif call.data == '✋🏻':
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=paper(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню!"]))
-    elif call.data == 'В меню!':
+                              text=paper(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню ↘️"]))
+    elif call.data == '🎲 < 3':
+        dice_1 = bot.send_dice(call.message.chat.id)
+        sleep(3)
+        bot.send_message(chat_id=call.message.chat.id,
+                         text=dice_min(dice_1, user),
+                         reply_markup=inline_buttons(["🎲 < 3", "🎲 = 3", "🎲 > 3", "В меню ↘️"]))
+    elif call.data == '🎲 = 3':
+        dice_2 = bot.send_dice(call.message.chat.id)
+        sleep(3)
+        bot.send_message(chat_id=call.message.chat.id,
+                         text=dice_three(dice_2, user),
+                         reply_markup=inline_buttons(["🎲 < 3", "🎲 = 3", "🎲 > 3", "В меню ↘️"]))
+    elif call.data == '🎲 > 3':
+        dice_3 = bot.send_dice(call.message.chat.id)
+        sleep(3)
+        bot.send_message(chat_id=call.message.chat.id,
+                         text=dice_max(dice_3, user),
+                         reply_markup=inline_buttons(["🎲 < 3", "🎲 = 3", "🎲 > 3", "В меню ↘️"]))
+    elif call.data == 'Правила 📝':
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=game_instance.rules(), reply_markup=inline_buttons(["К игре ⬆️"]))
+    elif call.data == 'Играть ⏯️' or (call.data == 'Сыграть ещё'):
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=game_instance.start(),
+                              reply_markup=inline_buttons(["5💰", "10💰", "15💰", "20💰", "К игре ⬆️"]))
+
+    elif call.data in ['5💰', '10💰', '15💰', '20💰']:
+        amount = int(call.data.replace('💰', ''))
+        game_text = game_instance.game(user=user, amount=amount)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=game_text, reply_markup=inline_buttons(["Ещё", "Стоп"]))
+
+    elif call.data == 'Ещё':
+        add_card_text = game_instance.add_card()
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=add_card_text, reply_markup=inline_buttons(["Ещё", "Стоп"]))
+    elif call.data == 'Стоп':
+        stop_text = game_instance.stop_card(user)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=stop_text, reply_markup=inline_buttons(['Сыграть ещё', "В меню ↘️"]))
+    elif call.data == 'В меню ↘️':
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id, text='Вы в главном меню!',
-                              reply_markup=inline_buttons(["Профиль", "Орёл / Решка", "✊🏻/✌🏻/✋🏻", "Казино 🎰"]))
+                              reply_markup=inline_buttons(
+                                  ["Профиль", "Орёл / Решка", "✊🏻/✌🏻/✋🏻", 'Кости 🎲', '21🃏', "Казино 🎰"]))
     elif call.data == 'Вернуться ☝🏻':
         account(call.message, user)
     else:

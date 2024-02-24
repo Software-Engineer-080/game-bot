@@ -19,6 +19,7 @@ def verify(call, user):
         if player_choice == 'Орёл 🦅':  # 0
             players = 0
             if players == now:
+                user.update_wins()
                 user.add_money(3)
                 return f'Поздравляю, {call.from_user.first_name}!\n\n'\
                        f'Вы выиграли 3 монеты!\n\n'\
@@ -31,6 +32,7 @@ def verify(call, user):
         elif player_choice == 'Решка 🪙':  # 1
             players = 1
             if players == now:
+                user.update_wins()
                 user.add_money(3)
                 return f'Поздравляю, {call.from_user.first_name}!\n\n'\
                        f'Вы выиграли 3 монеты!\n\n'\
