@@ -18,7 +18,7 @@ def dice_min(dice_1, user):
         user.deduct_money(6)
         if dice_1.dice.value < 3:
             user.add_money(10)
-            user.update_wins()  # Увеличиваем количество побед
+            user.update_wins()
             return f'Вы выиграли 10 монет!\n\n' \
                    f'Выпало: {dice_1.dice.value}\n\n' \
                    f'Ваш баланс монет: {user.money}💰'
@@ -40,7 +40,7 @@ def dice_three(dice_2, user):
         user.deduct_money(6)
         if dice_2.dice.value == 3:
             user.add_money(15)
-            user.update_wins()  # Увеличиваем количество побед
+            user.update_wins()
             return f'Вы выиграли 15 монет!\n\n' \
                    f'Выпало: {dice_2.dice.value}\n\n' \
                    f'Ваш баланс монет: {user.money}💰'
@@ -62,7 +62,7 @@ def dice_max(dice_3, user):
         user.deduct_money(6)
         if dice_3.dice.value > 3:
             user.add_money(10)
-            user.update_wins()  # Увеличиваем количество побед
+            user.update_wins()
             return f'Вы выиграли 10 монет!\n\n' \
                    f'Выпало: {dice_3.dice.value}\n\n' \
                    f'Ваш баланс монет: {user.money}💰'
