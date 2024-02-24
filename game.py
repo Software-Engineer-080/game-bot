@@ -185,17 +185,18 @@ def update_status(user_id):
     if result is not None:
         wins = result[0]
         cursor.close()
-        new_status = ''
 
         if wins < 100:
             new_status = 'Новичок'
         elif 100 <= wins < 2000:
-            new_status = 'Опытный'
+            new_status = 'Сталкер'
         elif 2000 <= wins < 5000:
-            new_status = 'Профи'
-        elif 5000 <= wins < 10000:
             new_status = 'Ветеран'
+        elif 5000 <= wins < 10000:
+            new_status = 'Мастер'
         elif 10000 <= wins < 100000:
+            new_status = 'Завоеватель'
+        else:
             new_status = 'БОГ'
 
         cursor = conn.cursor()
