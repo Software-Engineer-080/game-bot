@@ -11,12 +11,12 @@ from game_dice import dice, dice_min, dice_three, dice_max
 import game_21
 from yookassa import Configuration, Payment
 
-bot = TeleBot('6739834598:AAGfsRZZyrn2-ki5BgOdYeZWm5OUfh6UJxw')
+bot = TeleBot('')
 
-yootoken = '390540012:LIVE:46917'
+yootoken = ''
 
-Configuration.account_id = '337976'
-Configuration.secret_key = 'test_nLq_kHuSF_E9J-_c-2-vxtvqXsSDVgGXB0Kcg6UwnkE'
+Configuration.account_id = ''
+Configuration.secret_key = ''
 
 conn = sqlite3.connect('game.sqlite', check_same_thread=False)
 
