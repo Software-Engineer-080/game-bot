@@ -387,9 +387,9 @@ def callback_query(call):
     elif call.data == 'Играть ⏯️' or (call.data == 'Сыграть ещё'):
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text=game_instance.start(),
-                              reply_markup=inline_buttons(["5💰", "10💰", "15💰", "20💰", "К игре ⬆️"]))
+                              reply_markup=inline_buttons(["6💰", "9💰", "12💰", "15💰", "К игре ⬆️"]))
 
-    elif call.data in ['5💰', '10💰', '15💰', '20💰']:
+    elif call.data in ["6💰", "9💰", "12💰", "15💰"]:
         amount = int(call.data.replace('💰', ''))
         game_text = game_instance.game(user=user, amount=amount)
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
