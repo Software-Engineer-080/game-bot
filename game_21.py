@@ -49,7 +49,7 @@ class BlackjackGame:
                f"С начала игры тебе раздаётся 2 карты и показывается их сумма\n\n" \
                f"По необходимости ты можешь добрать карт, нажав на кнопку 'Ещё'\n\n" \
                f"Если у тебя на руках достаточно карт, но не меньше 15, то " \
-               f"ты можешь нажать на кнопку 'Стоп', тогда карты начнет набирать Дилер\n\n" \
+               f"ты можешь нажать на кнопку 'Хватит', тогда карты начнет набирать Дилер\n\n" \
                f"Чья сумма карт будет ближе всего к 21, но не больше его, тот и победил\n\n" \
                f"‼️ В игре присутствует\n'Золотое Очко'‼️\n\n" \
                f"4. Удача всегда с тобой 🍀"
@@ -62,24 +62,18 @@ class BlackjackGame:
         self.amount = 0
         return 'Выберите ставку:'
 
-    def game(self, user, amount):
-        if user.money < amount:
-            return (f'Вы не можете сыграть!\n\n'
-                    f'Ваш баланс монет: {user.money}💰\n\n'
-                    f'Для игры нужно {amount}💰\n\n'
-                    f'Пополните баланс в профиле!')
-        else:
-            while len(self.gamer_list) != 2:
-                rnd_crd = random.choice(list(self.cards.keys()))
-                if rnd_crd not in self.gamer_list:
-                    self.gamer_list.append(rnd_crd)
-                else:
-                    continue
-            self.amount += amount
-            for i in range(len(self.gamer_list)):
-                self.gamer_summ += self.cards[self.gamer_list[i]]
-            return (f'Сейчас у Вас на руках:\n{self.gamer_list}\n\n'
-                    f'Сумма карт: {self.gamer_summ}')
+    def game(self, amount):
+        while len(self.gamer_list) != 2:
+            rnd_crd = random.choice(list(self.cards.keys()))
+            if rnd_crd not in self.gamer_list:
+                self.gamer_list.append(rnd_crd)
+            else:
+                continue
+        self.amount += amount
+        for i in range(len(self.gamer_list)):
+            self.gamer_summ += self.cards[self.gamer_list[i]]
+        return (f'Сейчас у Вас на руках:\n{self.gamer_list}\n\n'
+                f'Сумма карт: {self.gamer_summ}')
 
     def add_card(self):
         if self.gamer_summ < 22:
@@ -87,7 +81,7 @@ class BlackjackGame:
                 return (f'Сейчас у Вас на руках:\n{self.gamer_list}\n\n'
                         f'Сумма карт: {self.gamer_summ}\n\n'
                         f'У вас "Очко"!\n\n'
-                        f'Нажмите кнопку "Хватит"!')
+                        f'Нажмите "Хватит"!')
             else:
                 new_card = random.choice(list(self.cards.keys()))
                 while new_card in self.gamer_list:
@@ -100,12 +94,12 @@ class BlackjackGame:
             return (f'Сейчас у Вас на руках:\n{self.gamer_list}\n\n'
                     f'Сумма карт: {self.gamer_summ}\n\n'
                     f'У вас "Золотое Очко"!\n\n'
-                    f'Нажмите кнопку "Хватит"!')
+                    f'Нажмите "Хватит"!')
         else:
             return (f'Сейчас у Вас на руках:\n{self.gamer_list}\n\n'
                     f'Сумма карт: {self.gamer_summ}\n\n'
                     f'У вас перебор!\n\n'
-                    f'Нажмите кнопку "Хватит"!')
+                    f'Нажмите "Хватит"!')
 
     def stop_card(self, user):
         while True:
@@ -118,7 +112,7 @@ class BlackjackGame:
                     continue
             else:
                 print('Сумма Дилера:', self.dealer_summ)
-                print('Сумма Игрока:', self.gamer_summ)
+                print(f'Сумма {user.name} - {user.id}:', self.gamer_summ)
                 print()
 
                 if (((len(self.dealer_list) == 2) and (self.dealer_summ == 22))

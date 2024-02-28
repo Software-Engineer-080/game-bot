@@ -8,7 +8,6 @@ from game_casino import casino, casino_fire
 from game_stone import stone_game, stone, scissors, paper
 from game_dice import dice, dice_min, dice_three, dice_max
 
-
 user_game_instances = {}
 
 
@@ -43,6 +42,11 @@ def send_welcome(message):
 
 @bot.message_handler(commands=['info'])
 def send_info(message):
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    btn_1 = types.InlineKeyboardButton(text="💵 Поддержать проект 💵", callback_data="💵 Поддержать проект 💵",
+                                       url='https://yookassa.ru/my/i/Zd3x8X87z_KX/l')
+    btn_2 = types.InlineKeyboardButton(text='В меню ↘️', callback_data='В меню ↘️')
+    markup.add(btn_1, btn_2)
     bot.send_message(message.chat.id,
                      f'❗️Раздел информации❗️\n\n'
                      f'⚠️Данный бот был создан Российским независимым разработчиком '
@@ -54,10 +58,10 @@ def send_info(message):
                      f'Вы даёте согласие на обработку персональных данных!\n\n'
                      f'⚠️Все алгоритмы в данном боте построены на РАНДОМЕ, '
                      f'поэтому администрация бота НЕ МОЖЕТ ВЛИЯТЬ на игровой процесс!\n\n'
-                     f'⚠️Если Вам понравился данный проект и Вы готовы его поддержать,'
+                     f'⚠️Если Вам понравился данный проект и Вы готовы его поддержать, '
                      f'то смело нажимайте на кнопку внизу\n\n'
                      f'✅Приятной вам игры!',
-                     reply_markup=inline_buttons(["💵 Поддержать проект 💵", 'В меню ↘️'], buttons_per_row=1))
+                     reply_markup=markup)
 
 
 # Функция отправки сообщения разработчику по команде "/sup"
@@ -105,9 +109,7 @@ def callback_query(call):
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text=game_instance.start_card(),
                               reply_markup=inline_buttons(["Играть ⏯️", "Правила 📝", "В меню ↘️"]))
-    elif call.data == "Пополнить счёт":
-        pay(call.message)
-    elif call.data == "Передать 💰":
+    elif call.data == "Передать 💶":
         if (user_id == 6700989923) or (user_id == 517899909):
             transfer_now(call.message)
         else:
@@ -115,50 +117,79 @@ def callback_query(call):
     elif (call.data == "ADMIN") or (call.data == 'К админке ⚖️'):
         bot.edit_message_text("Меню ADMIN", call.message.chat.id, call.message.message_id,
                               reply_markup=inline_buttons(
-                                  ['Стат 🌪', "Users", 'STOP ❌', 'Сообщение ☯️', 'Вернуться ☝🏻']))
+                                  ['Стат 🌪', "Users", '❌', '☯️', 'Вернуться ☝🏻']))
 
     elif call.data == "Стат 🌪":
         users_count(call.message)
     elif call.data == "Users":
-        admin_users(call)
-    elif call.data == 'STOP ❌':
+        admin_users(call, page=1)
+    elif call.data == '❌':
         bot.stop_bot()
     elif call.data == 'Орёл 🦅':
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=verify(call, user), reply_markup=inline_buttons(["Орёл 🦅", "Решка 🪙", "В меню ↘️"]))
+        if user.money < 3:
+            check_money(call, user, 3)
+        else:
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text=verify(call, user),
+                                  reply_markup=inline_buttons(["Орёл 🦅", "Решка 🪙", "В меню ↘️"]))
     elif call.data == 'Решка 🪙':
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=verify(call, user), reply_markup=inline_buttons(["Орёл 🦅", "Решка 🪙", "В меню ↘️"]))
+        if user.money < 3:
+            check_money(call, user, 3)
+        else:
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text=verify(call, user),
+                                  reply_markup=inline_buttons(["Орёл 🦅", "Решка 🪙", "В меню ↘️"]))
     elif call.data == 'Запуск 🔥':
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=casino_fire(user), reply_markup=inline_buttons(["Запуск 🔥", "В меню ↘️"]))
+        if user.money < 5:
+            check_money(call, user, 5)
+        else:
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text=casino_fire(user), reply_markup=inline_buttons(["Запуск 🔥", "В меню ↘️"]))
     elif call.data == '✊🏻':
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=stone(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню ↘️"]))
+        if user.money < 2:
+            check_money(call, user, 2)
+        else:
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text=stone(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню ↘️"]))
     elif call.data == '✌🏻':
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=scissors(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню ↘️"]))
+        if user.money < 2:
+            check_money(call, user, 2)
+        else:
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text=scissors(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню ↘️"]))
     elif call.data == '✋🏻':
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=paper(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню ↘️"]))
+        if user.money < 2:
+            check_money(call, user, 2)
+        else:
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text=paper(user), reply_markup=inline_buttons(["✊🏻", "✌🏻", "✋🏻", "В меню ↘️"]))
     elif call.data == '🎲 < 3':
-        dice_1 = bot.send_dice(call.message.chat.id)
-        sleep(3)
-        bot.send_message(chat_id=call.message.chat.id,
-                         text=dice_min(dice_1, user),
-                         reply_markup=inline_buttons(["🎲 < 3", "🎲 = 3", "🎲 > 3", "В меню ↘️"]))
+        if user.money < 4:
+            check_money(call, user, 4)
+        else:
+            dice_1 = bot.send_dice(call.message.chat.id)
+            sleep(3)
+            bot.send_message(chat_id=call.message.chat.id,
+                             text=dice_min(dice_1, user),
+                             reply_markup=inline_buttons(["🎲 < 3", "🎲 = 3", "🎲 > 3", "В меню ↘️"]))
     elif call.data == '🎲 = 3':
-        dice_2 = bot.send_dice(call.message.chat.id)
-        sleep(3)
-        bot.send_message(chat_id=call.message.chat.id,
-                         text=dice_three(dice_2, user),
-                         reply_markup=inline_buttons(["🎲 < 3", "🎲 = 3", "🎲 > 3", "В меню ↘️"]))
+        if user.money < 4:
+            check_money(call, user, 4)
+        else:
+            dice_2 = bot.send_dice(call.message.chat.id)
+            sleep(3)
+            bot.send_message(chat_id=call.message.chat.id,
+                             text=dice_three(dice_2, user),
+                             reply_markup=inline_buttons(["🎲 < 3", "🎲 = 3", "🎲 > 3", "В меню ↘️"]))
     elif call.data == '🎲 > 3':
-        dice_3 = bot.send_dice(call.message.chat.id)
-        sleep(3)
-        bot.send_message(chat_id=call.message.chat.id,
-                         text=dice_max(dice_3, user),
-                         reply_markup=inline_buttons(["🎲 < 3", "🎲 = 3", "🎲 > 3", "В меню ↘️"]))
+        if user.money < 4:
+            check_money(call, user, 4)
+        else:
+            dice_3 = bot.send_dice(call.message.chat.id)
+            sleep(3)
+            bot.send_message(chat_id=call.message.chat.id,
+                             text=dice_max(dice_3, user),
+                             reply_markup=inline_buttons(["🎲 < 3", "🎲 = 3", "🎲 > 3", "В меню ↘️"]))
     elif call.data == 'Правила 📝':
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text=user_game_instances[user_id].rules(), reply_markup=inline_buttons(["К игре ⬆️"]))
@@ -169,9 +200,12 @@ def callback_query(call):
 
     elif call.data in ["6💰", "9💰", "12💰", "15💰"]:
         amount = int(call.data.replace('💰', ''))
-        game_text = user_game_instances[user_id].game(user=user, amount=amount)
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=game_text, reply_markup=inline_buttons(["Ещё", "Хватит"]))
+        if user.money < amount:
+            check_money(call, user, amount)
+        else:
+            game_text = user_game_instances[user_id].game(amount=amount)
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text=game_text, reply_markup=inline_buttons(["Ещё", "Хватит"]))
 
     elif call.data == 'Ещё':
         add_card_text = user_game_instances[user_id].add_card()
@@ -189,7 +223,7 @@ def callback_query(call):
                                   ["Профиль ℹ️", "Орёл / Решка", "✊🏻/✌🏻/✋🏻", 'Кости 🎲', '21🃏', "Казино 🎰"]))
     elif call.data == 'Вернуться ☝🏻':
         account(call.message, user)
-    elif call.data == 'Сообщение ☯️':
+    elif call.data == '☯️':
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text='‼️Пользуйся этой кнопкой предельно осторожно, '
                                    'иначе вызовешь недовольство юзеров‼️',
@@ -199,6 +233,14 @@ def callback_query(call):
         send_user(call.message)
     elif call.data == 'Рассылка 🆘':
         all_send(call.message)
+    elif call.data.startswith('prev_'):
+        page = int(call.data.split('_')[-1]) - 1
+        admin_users(call, page=page)
+
+    elif call.data.startswith('next_'):
+        page = int(call.data.split('_')[-1]) + 1
+        admin_users(call, page=page)
+
     else:
         bot.answer_callback_query(call.id, text='Команда в разработке!')
 

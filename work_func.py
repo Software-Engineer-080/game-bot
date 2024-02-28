@@ -1,14 +1,14 @@
 import sqlite3
 import datetime
 from telebot import TeleBot, types
-from yookassa import Configuration, Payment
+from yookassa import Configuration
 
 bot = TeleBot('6739834598:AAGfsRZZyrn2-ki5BgOdYeZWm5OUfh6UJxw')
 
 yootoken = '390540012:LIVE:46917'
 
-Configuration.account_id = '337976'
-Configuration.secret_key = 'test_nLq_kHuSF_E9J-_c-2-vxtvqXsSDVgGXB0Kcg6UwnkE'
+Configuration.account_id = '337052'
+Configuration.secret_key = 'live_L9QVuMaq0lEeFaamnaOz8f6W6qeVkCg0hXvctvbY2yM'
 
 conn = sqlite3.connect('game.sqlite', check_same_thread=False)
 
@@ -102,6 +102,17 @@ def update_status(user_id):
         print("Пользователь с таким user_id не найден.")
 
 
+# Функция проверки баланса пользователей перед играми
+
+def check_money(call, user, amount):
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text=(f'Вы не можете сыграть!\n\n'
+                                f'Ваш баланс монет: {user.money}💰\n\n'
+                                f'Для игры нужно {amount}💰\n\n'
+                                f'Купите 💰 в профиле!'),
+                          reply_markup=inline_buttons(["В меню ↘️"]))
+
+
 # Функция создания клавиатуры кнопок под текстом
 
 def inline_buttons(buttons_lst, buttons_per_row=2):
@@ -110,7 +121,8 @@ def inline_buttons(buttons_lst, buttons_per_row=2):
         button_row = []
         for j in range(buttons_per_row):
             if i + j < len(buttons_lst):
-                button_row.append(types.InlineKeyboardButton(text=buttons_lst[i + j], callback_data=buttons_lst[i + j]))
+                button_row.append(
+                    types.InlineKeyboardButton(text=buttons_lst[i + j], callback_data=buttons_lst[i + j]))
         markup.row(*button_row)
     return markup
 
@@ -119,13 +131,24 @@ def inline_buttons(buttons_lst, buttons_per_row=2):
 
 def account(message, user):
     if (user.id == 6700989923) or (user.id == 517899909):
-        user_menu = inline_buttons(['ADMIN', "Пополнить счёт", 'Передать 💰', 'В меню ↘️'], buttons_per_row=2)
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        btn_1 = types.InlineKeyboardButton(text='ADMIN', callback_data='ADMIN')
+        btn_2 = types.InlineKeyboardButton(text='Купить 💰', callback_data='Купить 💰',
+                                           url='https://yookassa.ru/my/i/ZdzHrtzVqUxt/l')
+        btn_3 = types.InlineKeyboardButton(text='Передать 💶', callback_data='Передать 💶')
+        btn_4 = types.InlineKeyboardButton(text='В меню ↘️', callback_data='В меню ↘️')
+        markup.add(btn_1, btn_2, btn_3, btn_4)
     else:
-        user_menu = inline_buttons(["Пополнить счёт", 'Продать 💸', 'Передать 💰', 'В меню ↘️'],
-                                   buttons_per_row=2)
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        btn_1 = types.InlineKeyboardButton(text='Купить 💰', callback_data='Купить 💰',
+                                           url='https://yookassa.ru/my/i/ZdzHrtzVqUxt/l')
+        btn_2 = types.InlineKeyboardButton(text='Продать 💸', callback_data='Продать 💸')
+        btn_3 = types.InlineKeyboardButton(text='Передать 💶', callback_data='Передать 💶')
+        btn_4 = types.InlineKeyboardButton(text='В меню ↘️', callback_data='В меню ↘️')
+        markup.add(btn_1, btn_2, btn_3, btn_4)
     update_status(message.chat.id)
     bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
-                          text=user.get_info(), reply_markup=user_menu)
+                          text=user.get_info(), reply_markup=markup)
 
 
 # Функция админа по просмотру количества пользователей
@@ -141,20 +164,25 @@ def users_count(message):
         f"Пользователи: {count}\n\nВремя: {current_time}",
         chat_id=message.chat.id,
         message_id=message.message_id,
-        reply_markup=inline_buttons(['Стат 🌪', "Users", 'STOP ❌', 'Сообщение ☯️', 'Вернуться ☝🏻'])
+        reply_markup=inline_buttons(['Стат 🌪', "Users", '❌', '☯️', 'Вернуться ☝🏻'])
     )
 
 
 # Функция админа по просмотру информации о пользователях в БД
 
-def admin_users(call):
+def admin_users(call, page=1, items_per_page=3):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users")
     users_info = cursor.fetchall()
     cursor.close()
     update_status(call.from_user.id)
+
+    start_index = (page - 1) * items_per_page
+    end_index = start_index + items_per_page
+    current_page_users = users_info[start_index:end_index]
+
     all_user = ''
-    for user_info in users_info:
+    for user_info in current_page_users:
         a_id, user_id, name, money, status, wins = user_info
         user_info_text = (f"┏🆔: {user_id}\n"
                           f"┣🃏: {name}\n"
@@ -163,15 +191,30 @@ def admin_users(call):
                           f"┗💰: {money}\n\n")
         all_user += user_info_text
 
-    current_time = datetime.datetime.now().strftime("%H:%M:%S")
-    all_user += f"Время: {current_time}"
-
     if call.message:
+        markup = types.InlineKeyboardMarkup()
+        total_pages = (len(users_info) + items_per_page - 1) // items_per_page
+
+        if page > 1:
+            btn_1 = types.InlineKeyboardButton(text='⬅️', callback_data=f'prev_{page}')
+        else:
+            btn_1 = types.InlineKeyboardButton(text='⬅️', callback_data=f'prev_{total_pages + 1}')
+
+        btn_2 = types.InlineKeyboardButton(text=f'{page}/{total_pages}', callback_data=' ')
+
+        if page < total_pages:
+            btn_3 = types.InlineKeyboardButton(text='➡️', callback_data=f'next_{page}')
+        else:
+            btn_3 = types.InlineKeyboardButton(text='➡️', callback_data=f'next_0')
+
+        markup.row(btn_1, btn_2, btn_3)
+        btn_4 = types.InlineKeyboardButton(text='К админке ⚖️', callback_data='К админке ⚖️')
+        markup.row(btn_4)
+
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
                               text=all_user,
-                              reply_markup=inline_buttons(
-                                  ['Стат 🌪', "Users", 'STOP ❌', 'Сообщение ☯️', 'Вернуться ☝🏻']))
+                              reply_markup=markup)
 
     else:
         bot.send_message(call.message.chat.id, "Сообщение для редактирования не найдено")
@@ -190,10 +233,10 @@ def transfer_next(message):
         receiver = get_or_create_user(user_id, "Unknown")
         receiver.add_money(amount)
         if (user_id == 6700989923) or (user_id == 517899909):
-            bot.send_message(message.chat.id, f"Вы пополнили свой счет на {amount}💰")
+            bot.send_message(message.chat.id, f"Вы закинули себе {amount}💰")
         else:
             bot.send_message(user_id, f"Админ пополнил ваш счет на {amount}💰")
-            bot.send_message(message.chat.id, f"Вы передали {amount} монет пользователю с ID {user_id}\n\n"
+            bot.send_message(message.chat.id, f"Вы передали {amount}💰\nпользователю {user_id}\n\n"
                                               f"Нажмите заново /start", )
     except ValueError:
         bot.send_message(message.chat.id, "Неверный формат сообщения. Попробуйте снова")
@@ -266,53 +309,3 @@ def transfer_money_next(message):
             transfer_money_now(message)
     except ValueError:
         bot.send_message(message.chat.id, "Неверный формат сообщения. Попробуйте снова")
-
-
-# Функции по созданию и обработке оплаты токенов
-
-def pay(message):
-    bot.send_invoice(message.chat.id,
-                     title="Покупка токенов",
-                     description='100 рублей --> 50 токенов',
-                     invoice_payload="Payment: Zozulya Yaroslav",
-                     currency="RUB",
-                     max_tip_amount=10000,
-                     suggested_tip_amounts=[20 * 10, 30 * 10, 40 * 10],
-                     provider_token=yootoken,
-                     need_name=True,
-                     is_flexible=False,
-                     prices=[types.LabeledPrice(label="50 💰", amount=100 * 100)],
-                     start_parameter="payment")
-
-
-@bot.shipping_query_handler(func=lambda query: True)
-def shipping(shipping_query):
-    bot.answer_shipping_query(shipping_query.id, ok=True)
-
-
-@bot.pre_checkout_query_handler(func=lambda query: True)
-def checkout(pre_checkout_query):
-    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True, error_message="Error")
-
-
-@bot.message_handler(content_types=['successful_payment'])
-def successful_payment(message):
-    user_id = message.from_user.id
-    amount = 50
-    payment = Payment.create({
-        "amount": {
-            "value": str(amount * 2),
-            "currency": "RUB"
-        },
-        "confirmation": {
-            "type": "redirect",
-            "return_url": "https://t.me/All_Funny_Games_bot"
-        },
-        'capture': True,
-        "description": "Покупка токенов для бота"
-    })
-    user = get_or_create_user(user_id, message.from_user.first_name)
-    if payment.status == 'succeeded':
-        user.add_money(amount)
-        bot.send_message(message.from_user.id, f'Вы успешно приобрели {amount} токенов\n'
-                                               f'Нажмите заново /start')
