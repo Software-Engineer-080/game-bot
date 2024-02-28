@@ -3,12 +3,12 @@ import datetime
 from telebot import TeleBot, types
 from yookassa import Configuration
 
-bot = TeleBot('6739834598:AAGfsRZZyrn2-ki5BgOdYeZWm5OUfh6UJxw')
+bot = TeleBot('')
 
-yootoken = '390540012:LIVE:46917'
+yootoken = ''
 
-Configuration.account_id = '337052'
-Configuration.secret_key = 'live_L9QVuMaq0lEeFaamnaOz8f6W6qeVkCg0hXvctvbY2yM'
+Configuration.account_id = ''
+Configuration.secret_key = ''
 
 conn = sqlite3.connect('game.sqlite', check_same_thread=False)
 
